@@ -13,6 +13,9 @@ class Task():
         self.cdate = cdate
         self.ddate = ddate
 
+    def toogleDone(self):
+        self.done = not self.done
+
 def load_tasks():
     if not os.path.exists(TASKS_FILE):
         return []
@@ -50,7 +53,7 @@ def display_tasks(stdscr, tasks):
     stdscr.clear()
     height, width = stdscr.getmaxyx()
     done_tasks = [task for task in tasks if task.done == True]
-    undone_tasks = [task for task in tasks if not task == True]
+    undone_tasks = [task for task in tasks if not task.done == True]
     if not tasks:
         stdscr.addstr(0, width//2 - len("No tasks created yet.")//2, "No tasks created yet.")
     else:
@@ -69,7 +72,7 @@ def display_all_tasks(stdscr, tasks):
         stdscr.addstr(0, 0, "No tasks created yet.")
     else:
         for idx, task in enumerate(tasks):
-            status = "[x]" if task['done'] else "[ ]"
+            status = "[x]" if task.done else "[ ]"
             stdscr.addstr(idx, 0, f"{idx + 1}. {status} {task.description}")
 
 def add_task(stdscr, tasks):
@@ -84,7 +87,7 @@ def add_task(stdscr, tasks):
     curses.noecho()
     cdate = datetime.now().strftime("%Y-%m-%d")
     new_task = Task(description, False, 
-                    datetime.strptime(cdate, "%d-%m-%Y").date(), 
+                    datetime.strptime(cdate, "%Y-%m-%d").date(), 
                     datetime.strptime(ddate_str, "%d-%m-%Y").date())
     tasks.append(new_task)
 
@@ -99,7 +102,7 @@ def toggle_task(stdscr, tasks):
         return
     curses.noecho()
     if 0 <= index < len(tasks):
-        tasks[index].done = not tasks[index].done
+        tasks[index].toogleDone()
 
 def delete_task(stdscr, tasks):
     display_all_tasks(stdscr, tasks)
@@ -153,12 +156,19 @@ def quit_message(stdscr):
     stdscr.refresh()
     stdscr.getch()
     
+def parse_date(date_str):
+    try:
+        return datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return datetime.strptime(date_str, "%Y-%m-%d")
+
 def set_tasks(loaded_tasks, tasks):
     for task_data in loaded_tasks:
-        task = Task(description = task_data['description'], done = task_data['done'], 
-                    cdate = datetime.strptime(task_data['cdate'],"%Y-%m-%d"), 
-                    ddate = datetime.strptime(task_data['ddate'], "%Y-%m-%d"))
+        task = Task(description=task_data['description'], done=task_data['done'], 
+                    cdate=parse_date(task_data['cdate']), 
+                    ddate=parse_date(task_data['ddate']))
         tasks.append(task)
+
 
 def main(stdscr):
     curses.curs_set(0)
