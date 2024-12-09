@@ -66,14 +66,22 @@ def display_tasks(stdscr, tasks):
             stdscr.addstr(height//2 + idx + 3, width//2 - task_lenght(task, 2, idx)//2, 
                           f"{idx + 1}. {task.description} - {task.cdate}")
 
-def display_all_tasks(stdscr, tasks):
+def display_all_tasks(stdscr, tasks, current_row):
     stdscr.clear()
+    height, width = stdscr.getmaxyx()
+    message = "No tasks created yet"
     if not tasks:
-        stdscr.addstr(0, 0, "No tasks created yet.")
+        stdscr.addstr(height//2 - len(message), width//2 - len(message), message)
     else:
         for idx, task in enumerate(tasks):
             status = "[x]" if task.done else "[ ]"
-            stdscr.addstr(idx, 0, f"{idx + 1}. {status} {task.description}")
+            height_print= (height//2 - len(tasks)) + idx + 1 
+            width_print= width//2 - (len(status) + len(task.description) + 2)//2
+            if idx == current_row:
+                stdscr.addstr(height_print, width_print, f"{idx + 1}. {status} {task.description}", curses.color_pair(1))
+            else:    
+                stdscr.addstr(height_print, width_print, f"{idx + 1}. {status} {task.description}")
+    stdscr.refresh()
 
 def add_task(stdscr, tasks):
     stdscr.clear()
@@ -92,28 +100,35 @@ def add_task(stdscr, tasks):
     tasks.append(new_task)
 
 def toggle_task(stdscr, tasks):
-    display_all_tasks(stdscr, tasks)
-    height, width = stdscr.getmaxyx()
-    stdscr.addstr(height - 1, 0, "-1 to cancel")
-    stdscr.addstr(len(tasks) + 1, 0, "Enter task number to toggle: ")
-    curses.echo()
-    index = int(stdscr.getstr(len(tasks) + 2, 0).decode('utf-8')) - 1
-    if index == '-1':
-        return
-    curses.noecho()
-    if 0 <= index < len(tasks):
-        tasks[index].toogleDone()
+    current_row = 0
+    while True:
+        display_all_tasks(stdscr, tasks,current_row)
+        key = stdscr.getch()
+        if(key == ord('j') or key == curses.KEY_DOWN) and current_row < len(tasks):
+            current_row += 1
+        elif(key == ord('k') or key == curses.KEY_UP) and current_row < len(tasks):
+            current_row -= 1 
+        elif key == curses.KEY_ENTER or key in [10,13]:
+            if 0 <= current_row < len(tasks):
+                tasks[current_row].toogleDone()
+        elif key == ord('q'): 
+            break
 
 def delete_task(stdscr, tasks):
-    display_all_tasks(stdscr, tasks)
-    stdscr.addstr(len(tasks) + 1, 0, "Enter task number to delete: ")
-    curses.echo()
-    index = int(stdscr.getstr(len(tasks) + 2, 0).decode('utf-8')) - 1
-    if index == '-1':
-        return
-    curses.noecho()
-    if 0 <= index < len(tasks):
-        tasks.pop(index)
+    current_row = 0
+    while True:
+        display_all_tasks(stdscr, tasks,current_row)
+        key = stdscr.getch()
+        if(key == ord('j') or key == curses.KEY_DOWN) and current_row < len(tasks):
+            current_row += 1
+        elif(key == ord('k') or key == curses.KEY_UP) and current_row < len(tasks):
+            current_row -= 1 
+        elif key == curses.KEY_ENTER or key in [10,13]:
+            if 0 <= current_row < len(tasks):
+                tasks.pop(current_row) 
+        elif key == ord('q'): 
+            break
+                
 
 def splash_screen(stdscr):
     stdscr.clear()
@@ -138,7 +153,6 @@ def splash_screen(stdscr):
     stdscr.getch()
 
 def quit_message(stdscr):
-    #I want to create a box that says goodbye and then quits the program
     stdscr.clear()
     height, width = stdscr.getmaxyx()
     box_height, box_width = 7, 50
@@ -168,7 +182,6 @@ def set_tasks(loaded_tasks, tasks):
                     cdate=parse_date(task_data['cdate']), 
                     ddate=parse_date(task_data['ddate']))
         tasks.append(task)
-
 
 def main(stdscr):
     curses.curs_set(0)
